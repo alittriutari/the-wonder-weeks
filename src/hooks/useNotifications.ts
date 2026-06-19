@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   isNotificationSupported,
   processDueNotifications,
@@ -17,13 +17,18 @@ interface UseNotificationsReturn {
   dismissReminder: (id: string) => void;
 }
 
-export function useNotifications(leaps: ComputedLeap[]): UseNotificationsReturn {
+export function useNotifications(
+  leaps: ComputedLeap[],
+): UseNotificationsReturn {
   const [permission, setPermission] = useState<
     NotificationPermission | "unsupported"
   >("default");
   const [missedReminders, setMissedReminders] = useState<DueNotification[]>([]);
 
-  // Restore permission state and process due notifications on mount
+  // Stable key derived from leap IDs — only changes when the leap list actually changes
+  const leapsKey = leaps.map((l) => l.definition.number).join(",");
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     if (!isNotificationSupported()) {
       setPermission("unsupported");
@@ -34,15 +39,19 @@ export function useNotifications(leaps: ComputedLeap[]): UseNotificationsReturn 
     setPermission(
       stored.permission !== "unsupported"
         ? (Notification.permission as NotificationPermission)
-        : "unsupported"
+        : "unsupported",
     );
 
     if (leaps.length === 0) return;
 
-    const due = processDueNotifications(leaps);
-    // Show in-app reminders for missed ones (browser was closed)
-    setMissedReminders(due);
-  }, [leaps]);
+    // Only process due notifications once leaps are loaded and on meaningful changes
+    if (!initializedRef.current || leapsKey) {
+      initializedRef.current = true;
+      const due = processDueNotifications(leaps);
+      setMissedReminders(due);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leapsKey]);
 
   const requestPermission = useCallback(async () => {
     const result = await requestNotificationPermission();
