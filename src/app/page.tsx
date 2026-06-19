@@ -41,14 +41,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <div className="fixed top-4 right-4 z-50">
+      {/* <div className="fixed top-4 right-4 z-50">
         <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
-      </div>
+      </div> */}
 
       {!profile ? (
         <OnboardingScreen onSave={saveEDD} />
       ) : (
         <Dashboard
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
           profile={profile}
           edd={edd!}
           leaps={leaps}
