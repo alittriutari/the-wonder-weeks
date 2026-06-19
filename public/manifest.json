@@ -1,0 +1,13 @@
+{
+  "name": "Wonder Weeks Tracker",
+  "short_name": "Wonder Weeks",
+  "description": "Track your baby's developmental leaps",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f7f4",
+  "theme_color": "#4d774d",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
