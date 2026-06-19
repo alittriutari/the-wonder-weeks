@@ -79,3 +79,9 @@ export function clearAllStorage(): void {
   safeRemove(KEYS.BABY_PROFILE);
   safeRemove(KEYS.NOTIFICATION_STATE);
 }
+
+export function parseEDDString(isoDate: string): Date {
+  // "2026-04-16" → split manually to avoid UTC midnight trap on mobile Safari
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day); // local midnight, not UTC
+}

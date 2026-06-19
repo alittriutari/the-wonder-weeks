@@ -23,13 +23,16 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 
 // ─── Record management ────────────────────────────────────────────────────────
 
-function makeRecordId(leapNumber: number, trigger: NotificationTrigger): string {
+function makeRecordId(
+  leapNumber: number,
+  trigger: NotificationTrigger,
+): string {
   return `leap-${leapNumber}-${trigger}`;
 }
 
 function getScheduledDate(
   leap: ComputedLeap,
-  trigger: NotificationTrigger
+  trigger: NotificationTrigger,
 ): Date {
   switch (trigger) {
     case "leap_start_minus_3":
@@ -47,7 +50,7 @@ function getScheduledDate(
  */
 export function buildNotificationSchedule(
   leaps: ComputedLeap[],
-  today: Date = new Date()
+  today: Date = new Date(),
 ): NotificationRecord[] {
   const records: NotificationRecord[] = [];
 
@@ -81,7 +84,7 @@ export function buildNotificationSchedule(
  */
 export function mergeSchedule(
   existing: NotificationRecord[],
-  fresh: NotificationRecord[]
+  fresh: NotificationRecord[],
 ): NotificationRecord[] {
   const existingMap = new Map(existing.map((r) => [r.id, r]));
   return fresh.map((record) => existingMap.get(record.id) ?? record);
@@ -106,6 +109,15 @@ function buildMessage(record: NotificationRecord, leap: ComputedLeap): string {
   }
 }
 
+function parseStoredDate(isoString: string): Date {
+  // If it's a full ISO datetime, this is fine. But if date-only, fix it:
+  if (isoString.length === 10) {
+    const [y, m, d] = isoString.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(isoString); // full datetime strings are safe
+}
+
 /**
  * Returns all notifications that are due today and haven't been delivered yet.
  * This handles the "browser was closed" case — run on app launch.
@@ -113,14 +125,15 @@ function buildMessage(record: NotificationRecord, leap: ComputedLeap): string {
 export function findDueNotifications(
   records: NotificationRecord[],
   leaps: ComputedLeap[],
-  today: Date = new Date()
+  today: Date = new Date(),
 ): DueNotification[] {
   const leapMap = new Map(leaps.map((l) => [l.definition.number, l]));
   const due: DueNotification[] = [];
 
   for (const record of records) {
     if (record.delivered) continue;
-    const scheduled = new Date(record.scheduledDate);
+    // const scheduled = new Date(record.scheduledDate);
+    const scheduled = parseStoredDate(record.scheduledDate);
     // Due if today >= scheduled date (catches missed days too)
     if (differenceInDays(today, scheduled) >= 0) {
       const leap = leapMap.get(record.leapNumber);
@@ -137,12 +150,9 @@ export function findDueNotifications(
  * Fire a browser notification and mark the record as delivered.
  */
 export function deliverBrowserNotification(
-  due: DueNotification
+  due: DueNotification,
 ): NotificationRecord {
-  if (
-    isNotificationSupported() &&
-    Notification.permission === "granted"
-  ) {
+  if (isNotificationSupported() && Notification.permission === "granted") {
     new Notification("Wonder Weeks", {
       body: due.message,
       icon: "/icon-192.png",
@@ -163,7 +173,7 @@ export function deliverBrowserNotification(
  */
 export function processDueNotifications(
   leaps: ComputedLeap[],
-  today: Date = new Date()
+  today: Date = new Date(),
 ): DueNotification[] {
   const state = getNotificationState();
   const fresh = buildNotificationSchedule(leaps, today);
