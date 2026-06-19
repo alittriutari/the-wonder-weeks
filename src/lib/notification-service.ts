@@ -10,15 +10,35 @@ import { getNotificationState, saveNotificationState } from "./storage";
 // ─── Permission ───────────────────────────────────────────────────────────────
 
 export function isNotificationSupported(): boolean {
-  return typeof window !== "undefined" && "Notification" in window;
+  try {
+    return (
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      typeof Notification !== "undefined" &&
+      typeof Notification.permission !== "undefined"
+    );
+  } catch {
+    return false;
+  }
 }
 
+// export async function requestNotificationPermission(): Promise<NotificationPermission> {
+//   if (!isNotificationSupported()) return "denied";
+//   const result = await Notification.requestPermission();
+//   const state = getNotificationState();
+//   saveNotificationState({ ...state, permission: result });
+//   return result;
+// }
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!isNotificationSupported()) return "denied";
-  const result = await Notification.requestPermission();
-  const state = getNotificationState();
-  saveNotificationState({ ...state, permission: result });
-  return result;
+  try {
+    const result = await Notification.requestPermission();
+    const state = getNotificationState();
+    saveNotificationState({ ...state, permission: result });
+    return result;
+  } catch {
+    return "denied";
+  }
 }
 
 // ─── Record management ────────────────────────────────────────────────────────
@@ -149,15 +169,36 @@ export function findDueNotifications(
 /**
  * Fire a browser notification and mark the record as delivered.
  */
+// export function deliverBrowserNotification(
+//   due: DueNotification,
+// ): NotificationRecord {
+//   if (isNotificationSupported() && Notification.permission === "granted") {
+//     new Notification("Wonder Weeks", {
+//       body: due.message,
+//       icon: "/icon-192.png",
+//       tag: due.record.id,
+//     });
+//   }
+
+//   return {
+//     ...due.record,
+//     delivered: true,
+//     deliveredAt: new Date().toISOString(),
+//   };
+// }
 export function deliverBrowserNotification(
   due: DueNotification,
 ): NotificationRecord {
-  if (isNotificationSupported() && Notification.permission === "granted") {
-    new Notification("Wonder Weeks", {
-      body: due.message,
-      icon: "/icon-192.png",
-      tag: due.record.id,
-    });
+  try {
+    if (isNotificationSupported() && Notification.permission === "granted") {
+      new Notification("Wonder Weeks", {
+        body: due.message,
+        icon: "/icon-192.png",
+        tag: due.record.id,
+      });
+    }
+  } catch {
+    // Notification API unavailable or blocked (e.g. iOS Safari) — fail silently
   }
 
   return {
